@@ -22,8 +22,8 @@ initModel =
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick <| Msg "ciao" ] [ text "button in" ]
-        , button [] [ text "button out" ]
+        [ button [ onClick <| Msg "IN" ] [ text "button in" ]
+        , button [ onClick <| Msg "OUT" ] [ text "button out" ]
         , text model.user
         ]
 
@@ -32,18 +32,14 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Msg str ->
-            let
-                a =
-                    Debug.log str 1
-            in
-                ( model, firebaseSend str )
+            ( model, firebaseSend str )
 
         Firebase str ->
             let
                 a =
                     Debug.log str 2
             in
-                ( model, Cmd.none )
+                ( { model | user = str }, Cmd.none )
 
 
 

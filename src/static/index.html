@@ -28,6 +28,21 @@
 
 
 
+      <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase.js"></script>
+      <script>
+        // Initialize Firebase
+        var config = {
+          apiKey: "AIzaSyDG-7OphM36BpQkMuNvVbsOxdGx0kgADvY",
+          authDomain: "prova-ede5b.firebaseapp.com",
+          databaseURL: "https://prova-ede5b.firebaseio.com",
+          projectId: "prova-ede5b",
+          storageBucket: "prova-ede5b.appspot.com",
+          messagingSenderId: "475414347726"
+        };
+        firebase.initializeApp(config);
+      </script>
+
+
     </head>
 
     <body>
@@ -39,6 +54,55 @@
       <script>
           var node = document.getElementById('main');
           var app = Elm.Main.embed(node);
+
+          var provider = new firebase.auth.GoogleAuthProvider();
+
+          app.ports.firebaseSend.subscribe(function(str) {
+
+              if (str == "IN"){
+                signin();
+              }else{
+                signout();
+              }
+              console.log(str + " JS log");
+
+
+          });
+
+          var signin = function() {
+            firebase.auth().signInWithPopup(provider).then(function(result) {
+              // This gives you a Google Access Token. You can use it to access the Google API.
+              var token = result.credential.accessToken;
+              // The signed-in user info.
+              var user = result.user;
+              // ...
+              console.log(user.displayName);
+              app.ports.firebaseReceive.send(user.displayName);
+            }).catch(function(error) {
+              // Handle Errors here.
+              var errorCode = error.code;
+              var errorMessage = error.message;
+              // The email of the user's account used.
+              var email = error.email;
+              // The firebase.auth.AuthCredential type that was used.
+              var credential = error.credential;
+              // ...
+              console.log(errorMessage);
+              ret =  errorMessage;
+              app.ports.firebaseReceive.send(error.message);
+            });
+          };
+
+          var signout = function (){
+            firebase.auth().signOut().then(function() {
+              app.ports.firebaseReceive.send("SignOut");
+            }).catch(function(error) {
+              app.ports.firebaseReceive.send("SignOut Error");
+            });
+
+          };
+
+
       </script>
 
   </body>
