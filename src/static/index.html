@@ -56,7 +56,8 @@
           var app = Elm.Main.embed(node);
 
           var provider = new firebase.auth.GoogleAuthProvider();
-
+          provider.setCustomParameters({prompt:"select_account"});
+          
           app.ports.firebaseSend.subscribe(function(str) {
 
               if (str == "IN"){
