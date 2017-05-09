@@ -24,6 +24,7 @@ view model =
     div []
         [ button [ onClick <| Msg "IN" ] [ text "button in" ]
         , button [ onClick <| Msg "OUT" ] [ text "button out" ]
+        , button [ onClick <| Msg "QUERY" ] [ text "query" ]
         , text model.user
         ]
 
@@ -35,11 +36,7 @@ update msg model =
             ( model, firebaseSend str )
 
         Firebase str ->
-            let
-                a =
-                    Debug.log str 2
-            in
-                ( { model | user = str }, Cmd.none )
+            ( { model | user = str }, Cmd.none )
 
 
 

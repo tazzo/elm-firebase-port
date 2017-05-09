@@ -40,6 +40,12 @@
           messagingSenderId: "475414347726"
         };
         firebase.initializeApp(config);
+
+        var provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({prompt:"select_account"});
+        defaultStorage = firebase.storage();
+        defaultDatabase = firebase.database();
+
       </script>
 
 
@@ -52,21 +58,21 @@
 
       <script src="Main.js"></script>
       <script>
+
           var node = document.getElementById('main');
           var app = Elm.Main.embed(node);
 
-          var provider = new firebase.auth.GoogleAuthProvider();
-          provider.setCustomParameters({prompt:"select_account"});
-          
           app.ports.firebaseSend.subscribe(function(str) {
 
               if (str == "IN"){
                 signin();
-              }else{
+              } else   if (str == "OUT"){
                 signout();
+              } else   if (str == "QUERY"){
+                query();
+              }else{
+                console.log("command error: " + str );
               }
-              console.log(str + " JS log");
-
 
           });
 
@@ -99,6 +105,18 @@
               app.ports.firebaseReceive.send("SignOut");
             }).catch(function(error) {
               app.ports.firebaseReceive.send("SignOut Error");
+            });
+
+          };
+
+          var query = function (){
+            var ref = firebase.database().ref("posts/-KiqqpoBI7J9mAvNVfem/");
+
+            ref.on("value", function(snapshot) {
+               console.log(snapshot.val());
+               app.ports.firebaseReceive.send(snapshot.val().body);
+            }, function (error) {
+               console.log("Error: " + error.code);
             });
 
           };
