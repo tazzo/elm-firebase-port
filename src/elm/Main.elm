@@ -2,6 +2,7 @@ port module Main exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
+import ElmFirebase exposing (..)
 
 
 type alias Model =
@@ -11,7 +12,7 @@ type alias Model =
 
 type Msg
     = Msg String
-    | Firebase String
+    | FirebaseMsg String
 
 
 initModel : Model
@@ -33,30 +34,25 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Msg str ->
-            ( model, firebaseSend str )
+            ( model, toFirebase str )
 
-        Firebase str ->
+        FirebaseMsg str ->
             ( { model | user = str }, Cmd.none )
 
 
-
--- port for sending strings out to JavaScript
-
-
-port firebaseSend : String -> Cmd msg
+{-| -}
+port toFirebase : String -> Cmd msg
 
 
-
--- port for listening for suggestions from JavaScript
-
-
-port firebaseReceive : (String -> msg) -> Sub msg
+{-| port for listening for suggestions from JavaScript
+-}
+port fromFirebase : (String -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ firebaseReceive Firebase ]
+        [ fromFirebase FirebaseMsg ]
 
 
 main : Program Never Model Msg

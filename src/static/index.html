@@ -62,7 +62,7 @@
           var node = document.getElementById('main');
           var app = Elm.Main.embed(node);
 
-          app.ports.firebaseSend.subscribe(function(str) {
+          app.ports.toFirebase.subscribe(function(str) {
 
               if (str == "IN"){
                 signin();
@@ -84,7 +84,8 @@
               var user = result.user;
               // ...
               console.log(user.displayName);
-              app.ports.firebaseReceive.send(user.displayName);
+              app.ports.fromFirebase.send(user.displayName);
+
             }).catch(function(error) {
               // Handle Errors here.
               var errorCode = error.code;
@@ -96,15 +97,15 @@
               // ...
               console.log(errorMessage);
               ret =  errorMessage;
-              app.ports.firebaseReceive.send(error.message);
+              app.ports.fromFirebase.send(error.message);
             });
           };
 
           var signout = function (){
             firebase.auth().signOut().then(function() {
-              app.ports.firebaseReceive.send("SignOut");
+              app.ports.fromFirebase.send("SignOut");
             }).catch(function(error) {
-              app.ports.firebaseReceive.send("SignOut Error");
+              app.ports.fromFirebase.send("SignOut Error");
             });
 
           };
@@ -114,7 +115,7 @@
 
             ref.on("value", function(snapshot) {
                console.log(snapshot.val());
-               app.ports.firebaseReceive.send(snapshot.val().body);
+               app.ports.fromFirebase.send(snapshot.val().body);
             }, function (error) {
                console.log("Error: " + error.code);
             });
