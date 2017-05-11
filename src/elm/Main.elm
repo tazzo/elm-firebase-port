@@ -10,11 +10,30 @@ import Json.Decode as JD
 type alias Model =
     { user : String
     , path : String
+    , entry : Entry
+    }
+
+
+type alias Entry =
+    { title : String
+    , body : String
+    }
+
+
+initModel : Model
+initModel =
+    { user = "Signed Out"
+    , path = ""
+    , entry =
+        { title = ""
+        , body = ""
+        }
     }
 
 
 type DBMsg
     = Push String
+    | Set String JE.Value
     | On String String
 
 
@@ -26,15 +45,10 @@ type DBMsg
 type FirebaseMsg
     = Msg String
     | PathChange String
+    | TitleChange String
+    | BodyChange String
     | FirebaseMsg String
     | DatabaseMsg DBMsg
-
-
-initModel : Model
-initModel =
-    { user = "out"
-    , path = "path init"
-    }
 
 
 view : Model -> Html FirebaseMsg
@@ -48,12 +62,22 @@ view model =
             ]
         , div []
             [ input [ placeholder "path to push", onInput PathChange, myStyle ] []
-            , div [ myStyle ] [ text model.path ]
-            , button [ onClick <| DatabaseMsg <| Push model.path ] [ text "Push" ]
+            , input [ placeholder "title to push", onInput TitleChange, myStyle ] []
+            , input [ placeholder "body to push", onInput BodyChange, myStyle ] []
+            , button [ onClick <| DatabaseMsg <| Set model.path (toValue model.entry) ] [ text "New" ]
             ]
         ]
 
 
+toValue : Entry -> JE.Value
+toValue entry =
+    JE.object <|
+        [ ( "title", JE.string entry.title )
+        , ( "body", JE.string entry.body )
+        ]
+
+
+myStyle : Attribute msg
 myStyle =
     style
         [ ( "width", "100%" )
@@ -77,13 +101,12 @@ update msg model =
         FirebaseMsg str ->
             ( { model | user = str }, Cmd.none )
 
-        DatabaseMsg (Push str) ->
+        DatabaseMsg (Push path) ->
+            ( model, toFirebase <| push path )
+
+        DatabaseMsg (Set path value) ->
             ( model
-            , toFirebase <|
-                JE.object
-                    [ ( "action", JE.string "push" )
-                    , ( "path", JE.string str )
-                    ]
+            , toFirebase <| set path value
             )
 
         DatabaseMsg (On path event) ->
@@ -91,6 +114,47 @@ update msg model =
 
         PathChange str ->
             ( { model | path = str }, Cmd.none )
+
+        TitleChange str ->
+            let
+                entry =
+                    model.entry
+
+                newEntry =
+                    { entry | title = str }
+            in
+                ( { model | entry = newEntry }, Cmd.none )
+
+        BodyChange str ->
+            let
+                entry =
+                    model.entry
+
+                newEntry =
+                    { entry | body = str }
+            in
+                ( { model | entry = newEntry }, Cmd.none )
+
+
+entryFromModel model =
+    {}
+
+
+set : String -> JE.Value -> JE.Value
+set path value =
+    JE.object
+        [ ( "action", JE.string "set" )
+        , ( "path", JE.string path )
+        , ( "value", value )
+        ]
+
+
+push : String -> JE.Value
+push path =
+    JE.object
+        [ ( "action", JE.string "push" )
+        , ( "path", JE.string path )
+        ]
 
 
 {-| -}

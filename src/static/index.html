@@ -64,12 +64,15 @@
 
           app.ports.toFirebase.subscribe(function(obj) {
             console.log(obj);
-              if (obj.action == "push"){
+
+
+              if (obj.action == "set"){
                 var ref = defaultDatabase.ref(obj.path);
                 var newKey = ref.push().key;
                 var updates = {};
-                updates[ newKey] = {question:"question ..." , answers : {}};
+                updates[ newKey] = obj.value;
                 ref.update(updates);
+                console.log(obj.value);
                 console.log(newKey);
               }else if (obj.action == "IN"){
                 signin();
