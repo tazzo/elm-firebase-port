@@ -62,13 +62,20 @@
           var node = document.getElementById('main');
           var app = Elm.Main.embed(node);
 
-          app.ports.toFirebase.subscribe(function(str) {
-
-              if (str == "IN"){
+          app.ports.toFirebase.subscribe(function(obj) {
+            console.log(obj);
+              if (obj.action == "push"){
+                var ref = defaultDatabase.ref(obj.path);
+                var newKey = ref.push().key;
+                var updates = {};
+                updates[ newKey] = {question:"question ..." , answers : {}};
+                ref.update(updates);
+                console.log(newKey);
+              }else if (obj.action == "IN"){
                 signin();
-              } else   if (str == "OUT"){
+              } else   if (obj.action == "OUT"){
                 signout();
-              } else   if (str == "QUERY"){
+              } else   if (obj.action == "QUERY"){
                 query();
               }else{
                 console.log("command error: " + str );
