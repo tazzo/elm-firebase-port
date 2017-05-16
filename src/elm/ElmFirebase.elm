@@ -4,6 +4,7 @@ module ElmFirebase exposing (..)
 -}
 
 import Json.Encode as JE
+import Json.Decode as JD
 import Json.Encode exposing (Value)
 
 
@@ -11,21 +12,31 @@ type StoreCmd
     = Get String
 
 
+type alias Rec =
+    { a : String
+    , b : Int
+    }
+
+
 type DatabaseCmd
     = Push String
     | Set String Value
     | On String String
+    | Value Rec
 
 
 
+--
 -- decodeMsg : Value -> DatabaseCmd
 -- decodeMsg =
---     field "msg" string
---         |> andThen decodeMsgHelper
+--     JD.field
+--         "msg"
+--         JD.string
+--         |> JD.andThen decodeMsgHelper
+--         |> JD.decodeValue
 --
 --
---
--- decodeMsgHelper : String -> DatabaseCmd Info
+-- decodeMsgHelper : String -> JD.Decoder DatabaseCmd
 -- decodeMsgHelper msg =
 --     case msg of
 --         "value" ->
@@ -38,14 +49,23 @@ type DatabaseCmd
 --             chileRemovedDecoder
 --
 --         _ ->
---             fail <|
+--             JD.fail <|
 --                 "Trying to decode firebase msg, but msg "
 --                     ++ toString msg
 --                     ++ " is not supported."
 --
--- valueDecode
--- childAddedDecoder
--- chileRemovedDecoder
+--
+-- valueDecode : JD.Decoder DatabaseCmd
+-- valueDecode =
+--     JD.map2 Rec (JD.field "a" JD.string) (JD.field "b" JD.int)
+--
+--
+-- childAddedDecoder =
+--     never
+--
+--
+-- chileRemovedDecoder =
+--     never
 
 
 set : String -> Value -> Value
