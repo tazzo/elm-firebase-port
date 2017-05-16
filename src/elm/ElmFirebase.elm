@@ -17,6 +17,37 @@ type DatabaseCmd
     | On String String
 
 
+
+-- decodeMsg : Value -> DatabaseCmd
+-- decodeMsg =
+--     field "msg" string
+--         |> andThen decodeMsgHelper
+--
+--
+--
+-- decodeMsgHelper : String -> DatabaseCmd Info
+-- decodeMsgHelper msg =
+--     case msg of
+--         "value" ->
+--             valueDecode
+--
+--         "child_added" ->
+--             childAddedDecoder
+--
+--         "child_removed" ->
+--             chileRemovedDecoder
+--
+--         _ ->
+--             fail <|
+--                 "Trying to decode firebase msg, but msg "
+--                     ++ toString msg
+--                     ++ " is not supported."
+--
+-- valueDecode
+-- childAddedDecoder
+-- chileRemovedDecoder
+
+
 set : String -> Value -> Value
 set path value =
     JE.object
