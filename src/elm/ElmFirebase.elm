@@ -6,6 +6,7 @@ module ElmFirebase exposing (..)
 import Json.Encode as JE
 import Json.Decode as JD
 import Json.Encode exposing (Value)
+import Dict exposing (Dict)
 
 
 type StoreCmd
@@ -66,6 +67,46 @@ type DatabaseCmd
 --
 -- chileRemovedDecoder =
 --     never
+
+
+type alias Model =
+    { dicts : Indexed Int
+    }
+
+
+model : Model
+model =
+    { dicts = Dict.empty
+    }
+
+
+type alias Msg =
+    MyMsg Int
+
+
+type MyMsg a
+    = MyMsg Index a
+
+
+type alias Index =
+    List Int
+
+
+{-| Indexed families of things.
+-}
+type alias Indexed x =
+    Dict Index x
+
+
+update : Msg -> Container c -> ( Container c, Cmd m )
+update msg container =
+    ( container, Cmd.none )
+
+
+{-| Type of records that have an MDL model container.
+-}
+type alias Container c =
+    { c | elmfb : Model }
 
 
 set : String -> Value -> Value

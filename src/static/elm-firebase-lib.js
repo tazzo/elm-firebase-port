@@ -85,10 +85,10 @@ var signout = function (){
 };
 
 var query = function (){
-  var ref = firebase.database().ref("aaa");
+  var ref = defaultDatabase.ref("aaa/-KjtXZUD0-O9edkBM5k2");
 
   ref.on("value", function(snapshot) {
-     console.log(snapshot.val());
+     console.log("query val: " + snapshot.val());
      app.ports.fromFirebase.send(snapshot.val());
   }, function (error) {
      console.log("Error: " + error.code);

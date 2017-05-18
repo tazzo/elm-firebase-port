@@ -6,35 +6,25 @@ import Html.Events exposing (..)
 import Json.Encode as JE
 import Json.Encode exposing (Value)
 import Json.Decode as JD
-import ElmFirebase exposing (..)
+import Json.Decode exposing (Decoder)
 
 
 type alias Model =
     { user : String
+    , age : Int
     , path : String
-    , entry : Entry
-    , point : Point
-    , pathOn : String
-    , eventOn : String
-    , listen : String
+    , title : String
+    , body : String
     }
 
 
 initModel : Model
 initModel =
-    { user = "Signed Out"
-    , path = ""
-    , entry =
-        { title = ""
-        , body = ""
-        }
-    , point =
-        { x = 0
-        , y = 0
-        }
-    , pathOn = ""
-    , eventOn = ""
-    , listen = "init listen "
+    { user = "None"
+    , age = 0
+    , path = "None"
+    , title = "None"
+    , body = "None"
     }
 
 
@@ -42,65 +32,35 @@ type MyMsg
     = Msg String
     | PathChange String
     | TitleChange String
-    | PathOnChange String
-    | EventOnChange String
     | BodyChange String
-    | FBMsg Value
-    | Set String
-    | On String String
+    | Val Value
+    | BoxInt (Boxer Int)
+    | BoxString (Boxer String)
 
 
-type alias Entry =
-    { title : String
-    , body : String
-    }
+type Boxer a
+    = Box a
 
 
-entryDecoder : JD.Decoder Entry
-entryDecoder =
-    JD.map2 Entry (JD.field "title" JD.string) (JD.field "body" JD.string)
 
-
-type alias Point =
-    { x : Int
-    , y : Int
-    }
-
-
-pointDecoder : JD.Decoder Point
-pointDecoder =
-    JD.map2 Point (JD.field "x" JD.int) (JD.field "y" JD.int)
+-- entryDecoder : JD.Decoder Entry
+-- entryDecoder =
+--     JD.map2 Entry (JD.field "title" JD.string) (JD.field "body" JD.string)
 
 
 view : Model -> Html MyMsg
 view model =
     div []
         [ div []
-            [ button [ onClick <| Msg "IN" ] [ text "button in" ]
-            , button [ onClick <| Msg "OUT" ] [ text "button out" ]
-            , button [ onClick <| Msg "QUERY" ] [ text "query" ]
+            [ button [ onClick <| Msg "IN" ] [ text "button 1" ]
+            , button [ onClick <| Msg "OUT" ] [ text "button 2" ]
+            , button [ onClick <| Msg "QUERY" ] [ text "button 3" ]
             , text model.user
-            ]
-        , div []
-            [ input [ placeholder "path to push", onInput PathChange, myStyle ] []
-            , input [ placeholder "title to push", onInput TitleChange, myStyle ] []
+            , input [ placeholder <| model.title, onInput PathChange, myStyle ] []
+            , input [ placeholder <| model.body, onInput TitleChange, myStyle ] []
             , input [ placeholder "body to push", onInput BodyChange, myStyle ] []
-            , button [ onClick <| Set model.path ] [ text "New" ]
+            , button [ onClick <| Msg "none" ] [ text "New" ]
             ]
-        , div []
-            [ input [ placeholder "path", onInput PathOnChange, myStyle ] []
-            , input [ placeholder "event", onInput EventOnChange, myStyle ] []
-            , button [ onClick <| On model.pathOn model.eventOn ] [ text "On" ]
-            , div [] [ text model.listen ]
-            ]
-        ]
-
-
-toValue : Entry -> Value
-toValue entry =
-    JE.object <|
-        [ ( "title", JE.string entry.title )
-        , ( "body", JE.string entry.body )
         ]
 
 
@@ -118,67 +78,25 @@ update : MyMsg -> Model -> ( Model, Cmd MyMsg )
 update msg model =
     case msg of
         Msg str ->
-            ( model
-            , toFirebase <|
-                JE.object
-                    [ ( "action", JE.string str )
-                    ]
-            )
-
-        FBMsg value ->
-            ( { model | entry = decode value }, Cmd.none )
-
-        Set path ->
-            ( model
-            , toFirebase <| set path <| toValue model.entry
-            )
-
-        On path event ->
-            ( model
-            , toFirebase <| ElmFirebase.on path event
-            )
+            ( model, Cmd.none )
 
         PathChange str ->
             ( { model | path = str }, Cmd.none )
 
         TitleChange str ->
-            let
-                entry =
-                    model.entry
-
-                newEntry =
-                    { entry | title = str }
-            in
-                ( { model | entry = newEntry }, Cmd.none )
-
-        PathOnChange str ->
-            ( { model | pathOn = str }, Cmd.none )
-
-        EventOnChange str ->
-            ( { model | eventOn = str }, Cmd.none )
+            ( { model | title = str }, Cmd.none )
 
         BodyChange str ->
-            let
-                entry =
-                    model.entry
+            ( { model | body = str }, Cmd.none )
 
-                newEntry =
-                    { entry | body = str }
-            in
-                ( { model | entry = newEntry }, Cmd.none )
+        BoxInt a ->
+            ( model, Cmd.none )
 
+        BoxString a ->
+            ( model, Cmd.none )
 
-decode value =
-    let
-        res =
-            JD.decodeValue entryDecoder value
-    in
-        case res of
-            Ok e ->
-                e
-
-            Err err ->
-                { title = "Error ", body = "don't know" }
+        Val value ->
+            ( model, Cmd.none )
 
 
 {-| -}
@@ -190,10 +108,35 @@ port toFirebase : Value -> Cmd msg
 port fromFirebase : (Value -> msg) -> Sub msg
 
 
+helper : Decoder a -> a -> (a -> MyMsg) -> Value -> MyMsg
+helper decoder default tagger =
+    \value ->
+        let
+            res =
+                JD.decodeValue decoder value
+        in
+            case res of
+                Ok a ->
+                    tagger a
+
+                Err str ->
+                    tagger default
+
+
+fooint int =
+    BoxInt (Box int)
+
+
+foostring str =
+    BoxString (Box str)
+
+
 subscriptions : Model -> Sub MyMsg
 subscriptions model =
     Sub.batch
-        [ fromFirebase FBMsg ]
+        [ fromFirebase <| helper JD.int -1 fooint
+        , fromFirebase <| helper JD.string "" foostring
+        ]
 
 
 main : Program Never Model MyMsg
