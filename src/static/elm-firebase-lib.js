@@ -89,7 +89,7 @@ var query = function (){
 
   ref.on("value", function(snapshot) {
      console.log("query val: " + snapshot.val());
-     app.ports.fromFirebase.send(snapshot.val());
+    //  app.ports.fromFirebase.send(snapshot.val());
   }, function (error) {
      console.log("Error: " + error.code);
   });

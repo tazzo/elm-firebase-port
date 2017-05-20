@@ -1,4 +1,10 @@
-module ElmFirebase exposing (..)
+module ElmFirebase
+    exposing
+        ( Msg
+        , Model
+        , model
+        , update
+        )
 
 {-| A library for forebase communication via ports.
 -}
@@ -7,27 +13,110 @@ import Json.Encode as JE
 import Json.Decode as JD
 import Json.Encode exposing (Value)
 import Dict exposing (Dict)
+import Task
 
 
-type StoreCmd
-    = Get String
-
-
-type alias Rec =
-    { a : String
-    , b : Int
+type alias Model =
+    { dicts : Dict String Int
     }
 
 
-type DatabaseCmd
-    = Push String
-    | Set String Value
-    | On String String
-    | Value Rec
+model : Model
+model =
+    { dicts = Dict.empty
+    }
+
+
+{-| Type of records that have a model container.
+-}
+type alias Container c =
+    { c | firebase : Model }
+
+
+type alias Config m v =
+    { location : String
+    , lift : Msg m -> m
+    , encoder : v -> JD.Value
+    , decoder : JD.Decoder v
+    }
+
+
+cmd : msg -> Cmd msg
+cmd msg =
+    Task.perform (always msg) (Task.succeed msg)
+
+
+type alias Msg m =
+    ComponentMsg DatabaseMsg StoreMsg AuthMsg m
+
+
+type ComponentMsg db store auth msg
+    = DatabaseMsg db
+    | StoreMsg store
+    | AuthMsg auth
+    | TagMsg msg
+
+
+type DatabaseMsg
+    = On ChildEvent
+    | Set
+    | Push
+
+
+type ChildEvent
+    = Value
+    | ChildAdded
+    | ChildRemoved
+
+
+type StoreMsg
+    = Left
+    | Right
+
+
+type AuthMsg
+    = SignedIn String
+    | SignedOut
+
+
+{-| Update function for the above Msg. Provide as the first
+argument a lifting function that embeds the generic MDL action in
+your own Msg type.
+-}
+update : (Msg m -> m) -> Msg m -> Container c -> ( Container c, Cmd m )
+update lift msg container =
+    update_ lift msg (.firebase container)
+        |> map1st (Maybe.map (\firebase -> { container | firebase = firebase }))
+        |> map1st (Maybe.withDefault container)
+
+
+update_ : (Msg m -> m) -> Msg m -> Model -> ( Maybe Model, Cmd m )
+update_ lift msg store =
+    case msg of
+        DatabaseMsg a ->
+            ( Nothing, cmd <| lift msg )
+
+        StoreMsg a ->
+            ( Nothing, Cmd.none )
+
+        TagMsg a ->
+            ( Nothing, Cmd.none )
+
+        AuthMsg a ->
+            ( Nothing, Cmd.none )
+
+
+{-| Map the first element of a tuple.
+
+map1st ((+) 1) (1, "foo") == (2, "foo")
+
+-}
+map1st : (a -> c) -> ( a, b ) -> ( c, b )
+map1st f ( x, y ) =
+    ( f x, y )
 
 
 
---
 -- decodeMsg : Value -> DatabaseCmd
 -- decodeMsg =
 --     JD.field
@@ -67,46 +156,6 @@ type DatabaseCmd
 --
 -- chileRemovedDecoder =
 --     never
-
-
-type alias Model =
-    { dicts : Indexed Int
-    }
-
-
-model : Model
-model =
-    { dicts = Dict.empty
-    }
-
-
-type alias Msg =
-    MyMsg Int
-
-
-type MyMsg a
-    = MyMsg Index a
-
-
-type alias Index =
-    List Int
-
-
-{-| Indexed families of things.
--}
-type alias Indexed x =
-    Dict Index x
-
-
-update : Msg -> Container c -> ( Container c, Cmd m )
-update msg container =
-    ( container, Cmd.none )
-
-
-{-| Type of records that have an MDL model container.
--}
-type alias Container c =
-    { c | elmfb : Model }
 
 
 set : String -> Value -> Value

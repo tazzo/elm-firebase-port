@@ -7,11 +7,12 @@ import Json.Encode as JE
 import Json.Encode exposing (Value)
 import Json.Decode as JD
 import Json.Decode exposing (Decoder)
+import Task
+import ElmFirebase as EF
 
 
 type alias Model =
-    { user : String
-    , age : Int
+    { firebase : EF.Model
     , path : String
     , title : String
     , body : String
@@ -20,32 +21,19 @@ type alias Model =
 
 initModel : Model
 initModel =
-    { user = "None"
-    , age = 0
-    , path = "None"
-    , title = "None"
-    , body = "None"
+    { firebase = EF.model
+    , path = "None path"
+    , title = "None title"
+    , body = "None body"
     }
 
 
 type MyMsg
-    = Msg String
+    = FB (EF.Msg MyMsg)
+    | Msg String
     | PathChange String
     | TitleChange String
     | BodyChange String
-    | Val Value
-    | BoxInt (Boxer Int)
-    | BoxString (Boxer String)
-
-
-type Boxer a
-    = Box a
-
-
-
--- entryDecoder : JD.Decoder Entry
--- entryDecoder =
---     JD.map2 Entry (JD.field "title" JD.string) (JD.field "body" JD.string)
 
 
 view : Model -> Html MyMsg
@@ -55,11 +43,16 @@ view model =
             [ button [ onClick <| Msg "IN" ] [ text "button 1" ]
             , button [ onClick <| Msg "OUT" ] [ text "button 2" ]
             , button [ onClick <| Msg "QUERY" ] [ text "button 3" ]
-            , text model.user
-            , input [ placeholder <| model.title, onInput PathChange, myStyle ] []
-            , input [ placeholder <| model.body, onInput TitleChange, myStyle ] []
-            , input [ placeholder "body to push", onInput BodyChange, myStyle ] []
-            , button [ onClick <| Msg "none" ] [ text "New" ]
+            , input [ placeholder <| model.path, onInput PathChange, myStyle ] []
+            , input [ placeholder <| model.title, onInput TitleChange, myStyle ] []
+            , input [ placeholder <| model.body, onInput BodyChange, myStyle ] []
+            , button [ onClick <| Msg "GOOooo" ] [ text "Go" ]
+            , br [] []
+            , text <| model.path
+            , br [] []
+            , text model.title
+            , br [] []
+            , text model.body
             ]
         ]
 
@@ -89,14 +82,12 @@ update msg model =
         BodyChange str ->
             ( { model | body = str }, Cmd.none )
 
-        BoxInt a ->
-            ( model, Cmd.none )
-
-        BoxString a ->
-            ( model, Cmd.none )
-
-        Val value ->
-            ( model, Cmd.none )
+        FB msg ->
+            let
+                a =
+                    Debug.log "FB Msg"
+            in
+                EF.update FB msg model
 
 
 {-| -}
@@ -123,20 +114,10 @@ helper decoder default tagger =
                     tagger default
 
 
-fooint int =
-    BoxInt (Box int)
-
-
-foostring str =
-    BoxString (Box str)
-
-
 subscriptions : Model -> Sub MyMsg
 subscriptions model =
     Sub.batch
-        [ fromFirebase <| helper JD.int -1 fooint
-        , fromFirebase <| helper JD.string "" foostring
-        ]
+        []
 
 
 main : Program Never Model MyMsg
