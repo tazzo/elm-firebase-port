@@ -3,6 +3,7 @@ module ElmFirebase
         ( Msg
         , Model
         , model
+        , sampleMsg
         , update
         )
 
@@ -50,6 +51,11 @@ type alias Msg m =
     ComponentMsg DatabaseMsg StoreMsg AuthMsg m
 
 
+sampleMsg : (Msg m -> m) -> m
+sampleMsg lift =
+    lift (DatabaseMsg Set)
+
+
 type ComponentMsg db store auth msg
     = DatabaseMsg db
     | StoreMsg store
@@ -94,7 +100,7 @@ update_ : (Msg m -> m) -> Msg m -> Model -> ( Maybe Model, Cmd m )
 update_ lift msg store =
     case msg of
         DatabaseMsg a ->
-            ( Nothing, cmd <| lift msg )
+            ( Nothing, Cmd.none )
 
         StoreMsg a ->
             ( Nothing, Cmd.none )

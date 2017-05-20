@@ -46,7 +46,7 @@ view model =
             , input [ placeholder <| model.path, onInput PathChange, myStyle ] []
             , input [ placeholder <| model.title, onInput TitleChange, myStyle ] []
             , input [ placeholder <| model.body, onInput BodyChange, myStyle ] []
-            , button [ onClick <| Msg "GOOooo" ] [ text "Go" ]
+            , button [ onClick <| EF.sampleMsg FB ] [ text "Go" ]
             , br [] []
             , text <| model.path
             , br [] []
@@ -83,11 +83,7 @@ update msg model =
             ( { model | body = str }, Cmd.none )
 
         FB msg ->
-            let
-                a =
-                    Debug.log "FB Msg"
-            in
-                EF.update FB msg model
+            EF.update FB msg model
 
 
 {-| -}
