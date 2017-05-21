@@ -13,30 +13,32 @@ module ElmFirebase
 import Json.Encode as JE
 import Json.Decode as JD
 import Json.Encode exposing (Value)
-import Dict exposing (Dict)
 import Task
 
 
-type alias Model =
-    { dicts : Dict String Int
+type alias Model m =
+    { lift : Msg m -> m
+    , toFirebase : Value -> Cmd m
+    , fromFirebase : (Value -> m) -> Sub m
     }
 
 
-model : Model
-model =
-    { dicts = Dict.empty
+model : (Msg m -> m) -> (Value -> Cmd m) -> ((Value -> m) -> Sub m) -> Model m
+model lift toFirebase fromFirebase =
+    { lift = lift
+    , toFirebase = toFirebase
+    , fromFirebase = fromFirebase
     }
 
 
 {-| Type of records that have a model container.
 -}
-type alias Container c =
-    { c | firebase : Model }
+type alias Container c m =
+    { c | firebase : Model m }
 
 
 type alias Config m v =
     { location : String
-    , lift : Msg m -> m
     , syncLift : v -> m
     , encoder : v -> JD.Value
     , decoder : JD.Decoder v
@@ -74,6 +76,7 @@ type ChildEvent
     = Value
     | ChildAdded
     | ChildRemoved
+    | ChildUpdated
 
 
 type StoreMsg
@@ -90,18 +93,26 @@ type AuthMsg
 argument a lifting function that embeds the generic MDL action in
 your own Msg type.
 -}
-update : (Msg m -> m) -> Msg m -> Container c -> ( Container c, Cmd m )
-update lift msg container =
-    update_ lift msg (.firebase container)
+update : Msg m -> Container c m -> ( Container c m, Cmd m )
+update msg container =
+    update_ msg (.firebase container)
         |> map1st (Maybe.map (\firebase -> { container | firebase = firebase }))
         |> map1st (Maybe.withDefault container)
 
 
-update_ : (Msg m -> m) -> Msg m -> Model -> ( Maybe Model, Cmd m )
-update_ lift msg store =
+update_ : Msg m -> Model m -> ( Maybe (Model m), Cmd m )
+update_ msg store =
     case msg of
         DatabaseMsg a ->
-            ( Nothing, Cmd.none )
+            case a of
+                On a ->
+                    ( Nothing, Cmd.none )
+
+                Set ->
+                    ( Nothing, store.toFirebase <| JE.int 45 )
+
+                Push ->
+                    ( Nothing, Cmd.none )
 
         StoreMsg a ->
             ( Nothing, Cmd.none )

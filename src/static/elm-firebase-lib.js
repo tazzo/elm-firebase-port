@@ -45,7 +45,7 @@ app.ports.toFirebase.subscribe(function(obj) {
     } else   if (obj.action == "QUERY"){
       query();
     }else{
-      console.log("command error: " + str );
+      console.log("command error: " + obj );
     }
 
 });

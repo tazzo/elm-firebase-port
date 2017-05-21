@@ -12,7 +12,7 @@ import ElmFirebase as EFire
 
 
 type alias Model =
-    { firebase : EFire.Model
+    { firebase : EFire.Model MyMsg
     , path : String
     , title : String
     , body : String
@@ -21,7 +21,7 @@ type alias Model =
 
 initModel : Model
 initModel =
-    { firebase = EFire.model
+    { firebase = EFire.model FB toFirebase fromFirebase
     , path = "None path"
     , title = "None title"
     , body = "None body"
