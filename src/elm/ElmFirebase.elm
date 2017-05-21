@@ -37,6 +37,7 @@ type alias Container c =
 type alias Config m v =
     { location : String
     , lift : Msg m -> m
+    , syncLift : v -> m
     , encoder : v -> JD.Value
     , decoder : JD.Decoder v
     }
@@ -120,6 +121,21 @@ map1st ((+) 1) (1, "foo") == (2, "foo")
 map1st : (a -> c) -> ( a, b ) -> ( c, b )
 map1st f ( x, y ) =
     ( f x, y )
+
+
+helper : Config m v -> v -> Value -> m
+helper config default =
+    \value ->
+        let
+            res =
+                JD.decodeValue config.decoder value
+        in
+            case res of
+                Ok a ->
+                    config.syncLift a
+
+                Err str ->
+                    config.syncLift default
 
 
 

@@ -8,11 +8,11 @@ import Json.Encode exposing (Value)
 import Json.Decode as JD
 import Json.Decode exposing (Decoder)
 import Task
-import ElmFirebase as EF
+import ElmFirebase as EFire
 
 
 type alias Model =
-    { firebase : EF.Model
+    { firebase : EFire.Model
     , path : String
     , title : String
     , body : String
@@ -21,7 +21,7 @@ type alias Model =
 
 initModel : Model
 initModel =
-    { firebase = EF.model
+    { firebase = EFire.model
     , path = "None path"
     , title = "None title"
     , body = "None body"
@@ -29,7 +29,7 @@ initModel =
 
 
 type MyMsg
-    = FB (EF.Msg MyMsg)
+    = FB (EFire.Msg MyMsg)
     | Msg String
     | PathChange String
     | TitleChange String
@@ -46,7 +46,7 @@ view model =
             , input [ placeholder <| model.path, onInput PathChange, myStyle ] []
             , input [ placeholder <| model.title, onInput TitleChange, myStyle ] []
             , input [ placeholder <| model.body, onInput BodyChange, myStyle ] []
-            , button [ onClick <| EF.sampleMsg FB ] [ text "Go" ]
+            , button [ onClick <| EFire.sampleMsg FB ] [ text "Go" ]
             , br [] []
             , text <| model.path
             , br [] []
@@ -83,7 +83,7 @@ update msg model =
             ( { model | body = str }, Cmd.none )
 
         FB msg ->
-            EF.update FB msg model
+            EFire.update FB msg model
 
 
 {-| -}
@@ -93,21 +93,6 @@ port toFirebase : Value -> Cmd msg
 {-| port for listening for suggestions from JavaScript
 -}
 port fromFirebase : (Value -> msg) -> Sub msg
-
-
-helper : Decoder a -> a -> (a -> MyMsg) -> Value -> MyMsg
-helper decoder default tagger =
-    \value ->
-        let
-            res =
-                JD.decodeValue decoder value
-        in
-            case res of
-                Ok a ->
-                    tagger a
-
-                Err str ->
-                    tagger default
 
 
 subscriptions : Model -> Sub MyMsg
