@@ -5,9 +5,8 @@ import Html.Attributes exposing (style, placeholder)
 import Html.Events exposing (..)
 import Json.Encode as JE
 import Json.Encode exposing (Value)
-import Json.Decode as JD
+import Json.Decode as JD exposing (string, bool, field, int)
 import Json.Decode exposing (Decoder)
-import Task
 import ElmFirebase as EFire
 
 
@@ -16,24 +15,63 @@ type alias Model =
     , path : String
     , title : String
     , body : String
+    , cfg : EFire.Config MyMsg Cfg
     }
 
 
-initModel : Model
+initModel : ( Model, Cmd msg )
 initModel =
-    { firebase = EFire.model FB toFirebase fromFirebase
-    , path = "None path"
-    , title = "None title"
-    , body = "None body"
+    ( { firebase = EFire.model toFirebase fromFirebase
+      , path = "None path"
+      , title = "None title"
+      , body = "None body"
+      , cfg = initConfig
+      }
+    , Cmd.none
+    )
+
+
+type alias Cfg =
+    { name : String
+    , age : Int
+    , foo : Bool
+    , body : String
     }
+
+
+cfgEncoder : Cfg -> Value
+cfgEncoder config =
+    JE.object
+        [ ( "name", JE.string config.name )
+        , ( "age", JE.int config.age )
+        , ( "foo", JE.bool config.foo )
+        , ( "body", JE.string config.body )
+        ]
+
+
+cfgDecoder : JD.Decoder Cfg
+cfgDecoder =
+    JD.map4 Cfg
+        (field "name" string)
+        (field "age" int)
+        (field "foo" bool)
+        (field "body" string)
+
+
+type alias MyConfig =
+    EFire.Config MyMsg Cfg
+
+
+initConfig =
+    EFire.createConfig "/config" EFireCfg cfgEncoder cfgDecoder
 
 
 type MyMsg
-    = FB (EFire.Msg MyMsg)
-    | Msg String
+    = Msg String
     | PathChange String
     | TitleChange String
     | BodyChange String
+    | EFireCfg Cfg
 
 
 view : Model -> Html MyMsg
@@ -46,7 +84,7 @@ view model =
             , input [ placeholder <| model.path, onInput PathChange, myStyle ] []
             , input [ placeholder <| model.title, onInput TitleChange, myStyle ] []
             , input [ placeholder <| model.body, onInput BodyChange, myStyle ] []
-            , button [ onClick <| EFire.sampleMsg FB ] [ text "Go" ]
+            , button [] [ text "Go" ]
             , br [] []
             , text <| model.path
             , br [] []
@@ -82,8 +120,8 @@ update msg model =
         BodyChange str ->
             ( { model | body = str }, Cmd.none )
 
-        FB msg ->
-            EFire.update FB msg model
+        EFireCfg cfg ->
+            ( model, Cmd.none )
 
 
 {-| -}
@@ -104,7 +142,7 @@ subscriptions model =
 main : Program Never Model MyMsg
 main =
     Html.program
-        { init = ( initModel, Cmd.none )
+        { init = initModel
         , view = view
         , subscriptions = subscriptions
         , update = update

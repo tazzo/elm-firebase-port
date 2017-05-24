@@ -5,6 +5,8 @@ module ElmFirebase
         , model
         , sampleMsg
         , update
+        , Config
+        , createConfig
         )
 
 {-| A library for forebase communication via ports.
@@ -17,16 +19,14 @@ import Task
 
 
 type alias Model m =
-    { lift : Msg m -> m
-    , toFirebase : Value -> Cmd m
+    { toFirebase : Value -> Cmd m
     , fromFirebase : (Value -> m) -> Sub m
     }
 
 
-model : (Msg m -> m) -> (Value -> Cmd m) -> ((Value -> m) -> Sub m) -> Model m
-model lift toFirebase fromFirebase =
-    { lift = lift
-    , toFirebase = toFirebase
+model : (Value -> Cmd m) -> ((Value -> m) -> Sub m) -> Model m
+model toFirebase fromFirebase =
+    { toFirebase = toFirebase
     , fromFirebase = fromFirebase
     }
 
@@ -39,9 +39,18 @@ type alias Container c m =
 
 type alias Config m v =
     { location : String
-    , syncLift : v -> m
+    , lift : v -> m
     , encoder : v -> JD.Value
     , decoder : JD.Decoder v
+    }
+
+
+createConfig : String -> (v -> m) -> (v -> JD.Value) -> JD.Decoder v -> Config m v
+createConfig location lift encoder decoder =
+    { location = location
+    , lift = lift
+    , encoder = encoder
+    , decoder = decoder
     }
 
 
@@ -143,52 +152,10 @@ helper config default =
         in
             case res of
                 Ok a ->
-                    config.syncLift a
+                    config.lift a
 
                 Err str ->
-                    config.syncLift default
-
-
-
--- decodeMsg : Value -> DatabaseCmd
--- decodeMsg =
---     JD.field
---         "msg"
---         JD.string
---         |> JD.andThen decodeMsgHelper
---         |> JD.decodeValue
---
---
--- decodeMsgHelper : String -> JD.Decoder DatabaseCmd
--- decodeMsgHelper msg =
---     case msg of
---         "value" ->
---             valueDecode
---
---         "child_added" ->
---             childAddedDecoder
---
---         "child_removed" ->
---             chileRemovedDecoder
---
---         _ ->
---             JD.fail <|
---                 "Trying to decode firebase msg, but msg "
---                     ++ toString msg
---                     ++ " is not supported."
---
---
--- valueDecode : JD.Decoder DatabaseCmd
--- valueDecode =
---     JD.map2 Rec (JD.field "a" JD.string) (JD.field "b" JD.int)
---
---
--- childAddedDecoder =
---     never
---
---
--- chileRemovedDecoder =
---     never
+                    config.lift default
 
 
 set : String -> Value -> Value
