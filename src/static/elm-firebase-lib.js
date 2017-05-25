@@ -22,11 +22,7 @@ app.ports.toFirebase.subscribe(function(obj) {
 
     if (obj.action == "set"){
       var ref = defaultDatabase.ref(obj.path);
-
-      var newKey = ref.push().key;
-      var updates = {};
-      updates[ newKey] = obj.value;
-      ref.update(updates);
+      ref.set(obj.value);
     }else if (obj.action == "on"){
 
       var ref = defaultDatabase.ref(obj.path);
@@ -45,7 +41,7 @@ app.ports.toFirebase.subscribe(function(obj) {
     } else   if (obj.action == "QUERY"){
       query();
     }else{
-      console.log("command error: " + obj );
+      console.log("command error: " + str );
     }
 
 });

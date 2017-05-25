@@ -3,6 +3,7 @@ module ElmFirebase
         ( Msg
         , Model
         , model
+        , set
         , sampleMsg
         , update
         , Config
@@ -158,13 +159,14 @@ helper config default =
                     config.lift default
 
 
-set : String -> Value -> Value
-set path value =
+set : Container c m -> Config m v -> v -> Cmd m
+set container config value =
     JE.object
         [ ( "action", JE.string "set" )
-        , ( "path", JE.string path )
-        , ( "value", value )
+        , ( "path", JE.string config.location )
+        , ( "value", config.encoder value )
         ]
+        |> container.firebase.toFirebase
 
 
 push : String -> Value

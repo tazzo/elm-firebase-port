@@ -12,20 +12,24 @@ import ElmFirebase as EFire
 
 type alias Model =
     { firebase : EFire.Model MyMsg
-    , path : String
-    , title : String
+    , name : String
+    , age : Int
+    , foo : Bool
     , body : String
-    , cfg : EFire.Config MyMsg Cfg
+    , config : EFire.Config MyMsg Cfg
+    , cfg : Cfg
     }
 
 
 initModel : ( Model, Cmd msg )
 initModel =
     ( { firebase = EFire.model toFirebase fromFirebase
-      , path = "None path"
-      , title = "None title"
+      , name = "None name"
       , body = "None body"
-      , cfg = initConfig
+      , age = -2
+      , foo = True
+      , config = initConfig
+      , cfg = initCfg
       }
     , Cmd.none
     )
@@ -37,6 +41,20 @@ type alias Cfg =
     , foo : Bool
     , body : String
     }
+
+
+initCfg : Cfg
+initCfg =
+    { name = ""
+    , age = -1
+    , foo = True
+    , body = ""
+    }
+
+
+cfgFromInput : Model -> Cfg
+cfgFromInput model =
+    Cfg model.name model.age model.foo model.body
 
 
 cfgEncoder : Cfg -> Value
@@ -68,8 +86,9 @@ initConfig =
 
 type MyMsg
     = Msg String
-    | PathChange String
-    | TitleChange String
+    | NameChange String
+    | AgeChange Int
+    | FooChange Bool
     | BodyChange String
     | EFireCfg Cfg
 
@@ -81,18 +100,47 @@ view model =
             [ button [ onClick <| Msg "IN" ] [ text "button 1" ]
             , button [ onClick <| Msg "OUT" ] [ text "button 2" ]
             , button [ onClick <| Msg "QUERY" ] [ text "button 3" ]
-            , input [ placeholder <| model.path, onInput PathChange, myStyle ] []
-            , input [ placeholder <| model.title, onInput TitleChange, myStyle ] []
+            , input [ placeholder <| model.name, onInput NameChange, myStyle ] []
+            , input [ placeholder <| toString model.age, onInput ageChange, myStyle ] []
+            , input [ placeholder <| toString model.foo, onInput fooChange, myStyle ] []
             , input [ placeholder <| model.body, onInput BodyChange, myStyle ] []
-            , button [] [ text "Go" ]
+            , div [] [ text "name: ", text model.cfg.name ]
+            , div [] [ text "name: ", text model.name ]
             , br [] []
-            , text <| model.path
+            , div [] [ text "age: ", text <| toString model.cfg.age ]
+            , div [] [ text "age: ", text <| toString model.age ]
             , br [] []
-            , text model.title
+            , div [] [ text "foo: ", text <| toString model.cfg.foo ]
+            , div [] [ text "foo: ", text <| toString model.foo ]
             , br [] []
-            , text model.body
+            , div [] [ text "body: ", text model.cfg.body ]
+            , div [] [ text "body: ", text model.body ]
             ]
         ]
+
+
+ageChange nb =
+    let
+        newInt =
+            Result.withDefault 0 (String.toInt nb)
+    in
+        AgeChange newInt
+
+
+fooChange bool =
+    let
+        newBool =
+            case bool of
+                "True" ->
+                    True
+
+                "true" ->
+                    True
+
+                _ ->
+                    False
+    in
+        FooChange newBool
 
 
 myStyle : Attribute msg
@@ -111,11 +159,18 @@ update msg model =
         Msg str ->
             ( model, Cmd.none )
 
-        PathChange str ->
-            ( { model | path = str }, Cmd.none )
+        NameChange str ->
+            ( { model | name = str }, EFire.set model model.config <| cfgFromInput model )
 
-        TitleChange str ->
-            ( { model | title = str }, Cmd.none )
+        AgeChange age ->
+            ( { model | age = age }, Cmd.none )
+
+        FooChange bool ->
+            let
+                a =
+                    Debug.log "bool " bool
+            in
+                ( { model | foo = bool }, Cmd.none )
 
         BodyChange str ->
             ( { model | body = str }, Cmd.none )
