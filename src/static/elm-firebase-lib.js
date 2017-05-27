@@ -27,9 +27,8 @@ app.ports.toFirebase.subscribe(function(obj) {
 
       var ref = defaultDatabase.ref(obj.path);
       ref.on(obj.event, function(snapshot) {
-        snapshot.forEach(function(data) {
-         console.log("The " + data.key + " score is " + data.val());
-       });
+        app.ports.fromFirebase.send(snapshot.val());
+        console.log("path: " + obj.path + "  ---  val: " + snapshot.val());
       }, function (error) {
          console.log("Error: " + error.code);
       });

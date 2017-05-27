@@ -2,10 +2,15 @@ module ElmFirebase
     exposing
         ( Msg
         , Model
+        , Location
         , model
         , set
+        , mirror
         , sampleMsg
         , update
+        , subs
+        , toUrl
+        , fromUrl
         , Config
         , createConfig
         )
@@ -20,15 +25,19 @@ import Task
 
 
 type alias Model m =
-    { toFirebase : Value -> Cmd m
+    { lift : Msg m -> m
+    , toFirebase : Value -> Cmd m
     , fromFirebase : (Value -> m) -> Sub m
+    , subscriptions : List (Sub m)
     }
 
 
-model : (Value -> Cmd m) -> ((Value -> m) -> Sub m) -> Model m
-model toFirebase fromFirebase =
-    { toFirebase = toFirebase
+model : (Msg m -> m) -> (Value -> Cmd m) -> ((Value -> m) -> Sub m) -> Model m
+model lift toFirebase fromFirebase =
+    { lift = lift
+    , toFirebase = toFirebase
     , fromFirebase = fromFirebase
+    , subscriptions = []
     }
 
 
@@ -39,14 +48,14 @@ type alias Container c m =
 
 
 type alias Config m v =
-    { location : String
+    { location : Location
     , lift : v -> m
     , encoder : v -> JD.Value
     , decoder : JD.Decoder v
     }
 
 
-createConfig : String -> (v -> m) -> (v -> JD.Value) -> JD.Decoder v -> Config m v
+createConfig : Location -> (v -> m) -> (v -> JD.Value) -> JD.Decoder v -> Config m v
 createConfig location lift encoder decoder =
     { location = location
     , lift = lift
@@ -60,8 +69,35 @@ cmd msg =
     Task.perform (always msg) (Task.succeed msg)
 
 
+subs : Container c m -> Sub m
+subs container =
+    Sub.batch container.firebase.subscriptions
+
+
+type alias Location =
+    List String
+
+
+toUrl : Location -> String
+toUrl location =
+    List.foldl (\key path -> path ++ "/" ++ key) "" location
+
+
+fromUrl : String -> Location
+fromUrl str =
+    String.split "/" str
+        |> List.filter (\s -> s /= "")
+        |> \lst ->
+            case lst of
+                [] ->
+                    [ "" ]
+
+                ll ->
+                    ll
+
+
 type alias Msg m =
-    ComponentMsg DatabaseMsg StoreMsg AuthMsg m
+    ComponentMsg DatabaseMsg StoreMsg ErrorMsg AuthMsg m
 
 
 sampleMsg : (Msg m -> m) -> m
@@ -69,17 +105,22 @@ sampleMsg lift =
     lift (DatabaseMsg Set)
 
 
-type ComponentMsg db store auth msg
+type ComponentMsg db store error auth msg
     = DatabaseMsg db
     | StoreMsg store
     | AuthMsg auth
+    | ErrorMsg error
     | TagMsg msg
+
+
+type ErrorMsg
+    = Error String
 
 
 type DatabaseMsg
     = On ChildEvent
     | Set
-    | Push
+    | Push String
 
 
 type ChildEvent
@@ -121,7 +162,7 @@ update_ msg store =
                 Set ->
                     ( Nothing, store.toFirebase <| JE.int 45 )
 
-                Push ->
+                Push str ->
                     ( Nothing, Cmd.none )
 
         StoreMsg a ->
@@ -131,6 +172,9 @@ update_ msg store =
             ( Nothing, Cmd.none )
 
         AuthMsg a ->
+            ( Nothing, Cmd.none )
+
+        ErrorMsg a ->
             ( Nothing, Cmd.none )
 
 
@@ -144,29 +188,48 @@ map1st f ( x, y ) =
     ( f x, y )
 
 
-helper : Config m v -> v -> Value -> m
-helper config default =
-    \value ->
-        let
-            res =
-                JD.decodeValue config.decoder value
-        in
-            case res of
-                Ok a ->
-                    config.lift a
+mirrorSub : Container c m -> Config m v -> Sub m
+mirrorSub container config =
+    container.firebase.fromFirebase (fooo container config)
 
-                Err str ->
-                    config.lift default
+
+fooo : Container c m -> Config m v -> Value -> m
+fooo container config value =
+    let
+        res =
+            JD.decodeValue config.decoder value
+    in
+        case res of
+            Ok a ->
+                config.lift a
+
+            Err str ->
+                container.firebase.lift (ErrorMsg (Error str))
 
 
 set : Container c m -> Config m v -> v -> Cmd m
 set container config value =
     JE.object
         [ ( "action", JE.string "set" )
-        , ( "path", JE.string config.location )
+        , ( "path", JE.string <| toUrl config.location )
         , ( "value", config.encoder value )
         ]
         |> container.firebase.toFirebase
+
+
+mirror : Container c m -> Config m v -> ( Container c m, Cmd m )
+mirror container config =
+    let
+        a =
+            Debug.log "ciao mirror " 3
+    in
+        JE.object
+            [ ( "action", JE.string "on" )
+            , ( "path", JE.string <| toUrl config.location )
+            , ( "event", JE.string "value" )
+            ]
+            |> container.firebase.toFirebase
+            |> \cmd -> ( container, cmd )
 
 
 push : String -> Value

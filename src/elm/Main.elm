@@ -81,7 +81,7 @@ type alias MyConfig =
 
 
 initConfig =
-    EFire.createConfig "/config" EFireCfg cfgEncoder cfgDecoder
+    EFire.createConfig (EFire.fromUrl "/config") EFireCfg cfgEncoder cfgDecoder
 
 
 type MyMsg
@@ -97,7 +97,7 @@ view : Model -> Html MyMsg
 view model =
     div []
         [ div []
-            [ button [ onClick <| Msg "IN" ] [ text "button 1" ]
+            [ button [ onClick <| Msg "ON" ] [ text "button ON" ]
             , button [ onClick <| Msg "OUT" ] [ text "button 2" ]
             , button [ onClick <| Msg "QUERY" ] [ text "button 3" ]
             , input [ placeholder <| model.name, onInput NameChange, myStyle ] []
@@ -157,7 +157,12 @@ update : MyMsg -> Model -> ( Model, Cmd MyMsg )
 update msg model =
     case msg of
         Msg str ->
-            ( model, Cmd.none )
+            case str of
+                "ON" ->
+                    EFire.mirror model model.config
+
+                _ ->
+                    ( model, Cmd.none )
 
         NameChange str ->
             ( { model | name = str }, EFire.set model model.config <| cfgFromInput model )
@@ -176,7 +181,7 @@ update msg model =
             ( { model | body = str }, Cmd.none )
 
         EFireCfg cfg ->
-            ( model, Cmd.none )
+            ( { model | cfg = cfg }, Cmd.none )
 
 
 {-| -}
@@ -191,7 +196,7 @@ port fromFirebase : (Value -> msg) -> Sub msg
 subscriptions : Model -> Sub MyMsg
 subscriptions model =
     Sub.batch
-        []
+        [ EFire.subs model ]
 
 
 main : Program Never Model MyMsg
