@@ -23,7 +23,7 @@ type alias Model =
 
 initModel : ( Model, Cmd msg )
 initModel =
-    ( { firebase = EFire.model toFirebase fromFirebase
+    ( { firebase = EFire.model EFireMsg toFirebase fromFirebase
       , name = "None name"
       , body = "None body"
       , age = -2
@@ -91,6 +91,7 @@ type MyMsg
     | FooChange Bool
     | BodyChange String
     | EFireCfg Cfg
+    | EFireMsg (EFire.Msg MyMsg)
 
 
 view : Model -> Html MyMsg
@@ -165,7 +166,11 @@ update msg model =
                     ( model, Cmd.none )
 
         NameChange str ->
-            ( { model | name = str }, EFire.set model model.config <| cfgFromInput model )
+            let
+                newModel =
+                    { model | name = str }
+            in
+                ( newModel, EFire.set newModel model.config <| cfgFromInput newModel )
 
         AgeChange age ->
             ( { model | age = age }, Cmd.none )
@@ -182,6 +187,9 @@ update msg model =
 
         EFireCfg cfg ->
             ( { model | cfg = cfg }, Cmd.none )
+
+        EFireMsg msg ->
+            EFire.update msg model
 
 
 {-| -}

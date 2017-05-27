@@ -22,6 +22,7 @@ import Json.Encode as JE
 import Json.Decode as JD
 import Json.Encode exposing (Value)
 import Task
+import Focus exposing (Focus, (=>))
 
 
 type alias Model m =
@@ -45,6 +46,28 @@ model lift toFirebase fromFirebase =
 -}
 type alias Container c m =
     { c | firebase : Model m }
+
+
+
+-- FOCUS --
+
+
+subscriptions : Focus (Model m) (List (Sub m))
+subscriptions =
+    Focus.create .subscriptions (\f model -> { model | subscriptions = f model.subscriptions })
+
+
+firebase : Focus (Container c m) (Model m)
+firebase =
+    Focus.create .firebase (\f container -> { container | firebase = f container.firebase })
+
+
+appendSubs subs =
+    Focus.update (firebase => subscriptions) (\lsubs -> List.append subs lsubs)
+
+
+appendSub sub =
+    appendSubs [ sub ]
 
 
 type alias Config m v =
@@ -188,9 +211,10 @@ map1st f ( x, y ) =
     ( f x, y )
 
 
-mirrorSub : Container c m -> Config m v -> Sub m
+mirrorSub : Container c m -> Config m v -> Container c m
 mirrorSub container config =
     container.firebase.fromFirebase (fooo container config)
+        |> \sub -> appendSub sub container
 
 
 fooo : Container c m -> Config m v -> Value -> m
@@ -207,16 +231,6 @@ fooo container config value =
                 container.firebase.lift (ErrorMsg (Error str))
 
 
-set : Container c m -> Config m v -> v -> Cmd m
-set container config value =
-    JE.object
-        [ ( "action", JE.string "set" )
-        , ( "path", JE.string <| toUrl config.location )
-        , ( "value", config.encoder value )
-        ]
-        |> container.firebase.toFirebase
-
-
 mirror : Container c m -> Config m v -> ( Container c m, Cmd m )
 mirror container config =
     let
@@ -229,7 +243,17 @@ mirror container config =
             , ( "event", JE.string "value" )
             ]
             |> container.firebase.toFirebase
-            |> \cmd -> ( container, cmd )
+            |> \cmd -> ( mirrorSub container config, cmd )
+
+
+set : Container c m -> Config m v -> v -> Cmd m
+set container config value =
+    JE.object
+        [ ( "action", JE.string "set" )
+        , ( "path", JE.string <| toUrl config.location )
+        , ( "value", config.encoder value )
+        ]
+        |> container.firebase.toFirebase
 
 
 push : String -> Value
